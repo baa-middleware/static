@@ -34,8 +34,11 @@ func Static(prefix, dir string, index bool, h baa.HandlerFunc) baa.HandlerFunc {
 		handler: h,
 	}
 
+	// compat go net standard indexPage
+	indexPage := "/index.html"
+
 	return func(c *baa.Context) {
-		file := c.Req.RequestURI
+		file := c.Req.URL.Path
 		if strings.HasPrefix(file, s.prefix) {
 			file = file[len(s.prefix):]
 		} else {
@@ -64,13 +67,22 @@ func Static(prefix, dir string, index bool, h baa.HandlerFunc) baa.HandlerFunc {
 					}
 					listDir(file, s, c)
 				} else {
-					c.Resp.WriteHeader(http.StatusForbidden)
+					// check index
+					if err := serveIndex(file+indexPage, c); err != nil {
+						c.Resp.WriteHeader(http.StatusForbidden)
+					}
 				}
 				c.Break()
 				return
 			}
 			// file
-			http.ServeFile(c.Resp, c.Req, file)
+			if strings.HasSuffix(file, indexPage) {
+				if err := serveIndex(file, c); err != nil {
+					c.Error(err)
+				}
+			} else {
+				http.ServeFile(c.Resp, c.Req, file)
+			}
 			c.Break()
 		}
 
@@ -110,4 +122,18 @@ func listDir(dir string, s *static, c *baa.Context) {
 		fmt.Fprintf(c.Resp, "<a style=\"color:%s\" href=\"%s\">%s</a>\n", color, url.String(), template.HTMLEscapeString(name))
 	}
 	fmt.Fprintf(c.Resp, "</pre>\n")
+}
+
+func serveIndex(file string, c *baa.Context) error {
+	f, err := os.Open(file)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	fs, err := f.Stat()
+	if err != nil {
+		return err
+	}
+	http.ServeContent(c.Resp, c.Req, f.Name(), fs.ModTime(), f)
+	return nil
 }
