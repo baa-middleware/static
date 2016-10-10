@@ -12,6 +12,9 @@ import (
 	"gopkg.in/baa.v1"
 )
 
+// compatible with go net standard indexPage
+const indexPage = "/index.html"
+
 type static struct {
 	handler baa.HandlerFunc
 	prefix  string
@@ -33,9 +36,6 @@ func Static(prefix, dir string, index bool, h baa.HandlerFunc) baa.HandlerFunc {
 		prefix:  prefix,
 		handler: h,
 	}
-
-	// compat go net standard indexPage
-	indexPage := "/index.html"
 
 	return func(c *baa.Context) {
 		file := c.Req.URL.Path
