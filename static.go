@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"gopkg.in/baa.v1"
+	"github.com/go-baa/baa"
 )
 
 // compatible with go net standard indexPage
